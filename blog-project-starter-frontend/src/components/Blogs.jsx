@@ -10,8 +10,7 @@ function Blogs() {
     const [newTitle, setNewTitle] = useState('');
     const [newContent, setNewContent] = useState('');
     const [loading, setLoading] = useState(false);
-
-    const API_URL = 'http://localhost:5000/api/blogs';
+ const API_URL = `${process.env.REACT_APP_API_URL}/api/blogs`;
 
     // Fetch all blogs
     const fetchBlogs = async () => {
