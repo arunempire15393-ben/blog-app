@@ -1,8 +1,10 @@
  
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import Footer from './common/Footer';
 import { auth } from '../config/firebase';
+
+const API_URL = `${process.env.REACT_APP_API_URL}/api/blogs`;
 
 function Blogs() {
     const [blogs, setBlogs] = useState([]);
@@ -10,18 +12,20 @@ function Blogs() {
     const [newTitle, setNewTitle] = useState('');
     const [newContent, setNewContent] = useState('');
     const [loading, setLoading] = useState(false);
- const API_URL = `${process.env.REACT_APP_API_URL}/api/blogs`;
 
     // Fetch all blogs
-    const fetchBlogs = async () => {
+    const fetchBlogs = useCallback(async () => {
         try {
             const response = await axios.get(API_URL);
             console.log('Blogs fetched:', response.data);
             setBlogs(response.data);
         } catch (error) {
-            console.error('Error fetching blogs:', error.response?.data || error.message);
+            console.error(
+                'Error fetching blogs:',
+                error.response?.data || error.message
+            );
         }
-    };
+    }, []);
 
     // Firebase authentication and initial blog loading
     useEffect(() => {
@@ -45,7 +49,7 @@ function Blogs() {
         fetchBlogs();
 
         return () => unsubscribe();
-    }, []);
+    }, [fetchBlogs]);
 
     // Add new blog
     const handleNewBlogSubmit = async (event) => {
@@ -83,7 +87,11 @@ function Blogs() {
 
             alert('Blog added successfully!');
         } catch (error) {
-            console.error('Error adding blog:', error.response?.data || error.message);
+            console.error(
+                'Error adding blog:',
+                error.response?.data || error.message
+            );
+
             alert(error.response?.data?.message || 'Failed to add blog.');
         } finally {
             setLoading(false);
@@ -100,7 +108,6 @@ function Blogs() {
             console.log('Like response:', response.data);
 
             await fetchBlogs();
-
         } catch (error) {
             console.error(
                 'Error liking blog:',

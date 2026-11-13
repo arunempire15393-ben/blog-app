@@ -1,43 +1,59 @@
+ 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {signInWithEmailAndPassword} from 'firebase/auth'; // Import the function to sign in a user
-import { auth } from "../config/firebase";
+import {
+    signInWithEmailAndPassword,
+    onAuthStateChanged
+} from 'firebase/auth';
+import { auth } from '../config/firebase';
+
 function Login() {
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-         auth.onAuthStateChanged(function (user) {
-              if (user) 
-              {
-                navigate("/home");
-              }
-            })
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                navigate('/home');
+            }
+        });
+
+        return () => unsubscribe();
     }, [navigate]);
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        
-        signInWithEmailAndPassword(auth, email, password).then((res) => {
-            navigate("/home");
-        }).catch(() => {
-            console.log("Error in signing in the user. Please try again.")
-            setError("Invalid email or password")
-        })
-        // Simulate login process
-        console.log('User logged in:', { email, password });
+        setError('');
 
-        // Redirect to homepage/dashboard after login
-        // Replace '/home' with your homepage route
-        
+        try {
+            setLoading(true);
+
+            await signInWithEmailAndPassword(auth, email, password);
+
+            navigate('/home');
+        } catch (err) {
+            console.error('Login Error:', err);
+            setError('Invalid email or password');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <div className="flex justify-center items-center h-screen bg-gray-100">
-            <form onSubmit={handleLogin} className="p-10 bg-white rounded-lg shadow-md" style={{ width: "75%" }}>
-                <h2 className="text-2xl font-bold mb-5 text-gray-800">Login</h2>
+            <form
+                onSubmit={handleLogin}
+                className="p-10 bg-white rounded-lg shadow-md"
+                style={{ width: "75%" }}
+            >
+                <h2 className="text-2xl font-bold mb-5 text-gray-800">
+                    Login
+                </h2>
+
                 <div className="mb-4">
                     <label className="block text-gray-700">Email:</label>
                     <input
@@ -48,6 +64,7 @@ function Login() {
                         className="mt-1 p-2 w-full border rounded"
                     />
                 </div>
+
                 <div className="mb-4">
                     <label className="block text-gray-700">Password:</label>
                     <input
@@ -58,10 +75,24 @@ function Login() {
                         className="mt-1 p-2 w-full border rounded"
                     />
                 </div>
-                    <p className='text-red-600 cursor-pointer my-2' >{error}</p>
-                <p className='text-blue-600 cursor-pointer my-2' onClick={() => navigate("/signup")}>New user? Register here</p>
-                <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200 ease-in-out">
-                    Login
+
+                {error && (
+                    <p className="text-red-600 my-2">{error}</p>
+                )}
+
+                <p
+                    className="text-blue-600 cursor-pointer my-2"
+                    onClick={() => navigate('/signup')}
+                >
+                    New user? Register here
+                </p>
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200 ease-in-out disabled:opacity-50"
+                >
+                    {loading ? 'Logging in...' : 'Login'}
                 </button>
             </form>
         </div>

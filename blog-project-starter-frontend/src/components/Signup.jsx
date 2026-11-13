@@ -1,49 +1,62 @@
-import React, { useState } from 'react';
+ 
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../config/firebase';
-import { useEffect } from "react";
+
 function Signup() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
-    const navigate = useNavigate(); // Hook from React Router for navigation
-   
+    const [loading, setLoading] = useState(false);
+
+    const navigate = useNavigate();
+
     useEffect(() => {
-                     auth.onAuthStateChanged(function (user) {
-                  if (user) 
-                  {
-                    navigate("/home");
-                  }
-                })
-        }, [navigate]);
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                navigate('/home');
+            }
+        });
 
-    const handleSubmit = (e) => {
+        return () => unsubscribe();
+    }, [navigate]);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
 
-        // Check if the passwords match
         if (password !== confirmPassword) {
             setError('Passwords do not match');
             return;
         }
-    createUserWithEmailAndPassword(auth, email, password).then( (res)=>{
-        console.log(res)
-    }).catch(()=>{
-        console.log("Failed to add user")
 
-    })
+        try {
+            setLoading(true);
 
-        // Simulate user registration process
-        console.log('User registered:', { email, password });
-        // After registration, redirect to the login page
-        navigate('/login'); // Replace '/login' with your login page route
+            await createUserWithEmailAndPassword(auth, email, password);
+
+            navigate('/home');
+        } catch (err) {
+            console.error('Signup Error:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <div className="flex justify-center items-center h-screen bg-gray-100">
-            <form onSubmit={handleSubmit} className="p-10 bg-white rounded-lg shadow-lg" style={{ width: "70%" }}>
-                <h2 className="text-2xl font-bold mb-5 text-gray-800">Sign In</h2>
+            <form
+                onSubmit={handleSubmit}
+                className="p-10 bg-white rounded-lg shadow-lg"
+                style={{ width: "70%" }}
+            >
+                <h2 className="text-2xl font-bold mb-5 text-gray-800">
+                    Sign In
+                </h2>
+
                 <div className="mb-4">
                     <label className="block text-gray-700">Email:</label>
                     <input
@@ -54,6 +67,7 @@ function Signup() {
                         className="mt-1 p-2 w-full border rounded"
                     />
                 </div>
+
                 <div className="mb-4">
                     <label className="block text-gray-700">Password:</label>
                     <input
@@ -64,6 +78,7 @@ function Signup() {
                         className="mt-1 p-2 w-full border rounded"
                     />
                 </div>
+
                 <div className="mb-4">
                     <label className="block text-gray-700">Confirm Password:</label>
                     <input
@@ -73,11 +88,24 @@ function Signup() {
                         required
                         className="mt-1 p-2 w-full border rounded"
                     />
-                    {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                    {error && (
+                        <p className="text-red-500 text-sm mt-2">{error}</p>
+                    )}
                 </div>
-                <p className='text-blue-600 cursor-pointer my-2' onClick={() => navigate("/login")}> Already have an account? Login here</p>
-                <button type="submit" className="bg-orange-400 text-white py-2 px-4 rounded hover:bg-orange-600 transition duration-200 ease-in-out">
-                    Register
+
+                <p
+                    className="text-blue-600 cursor-pointer my-2"
+                    onClick={() => navigate('/login')}
+                >
+                    Already have an account? Login here
+                </p>
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-orange-400 text-white py-2 px-4 rounded hover:bg-orange-600 transition duration-200 ease-in-out disabled:opacity-50"
+                >
+                    {loading ? 'Registering...' : 'Register'}
                 </button>
             </form>
         </div>
